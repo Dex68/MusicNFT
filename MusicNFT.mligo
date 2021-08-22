@@ -1,5 +1,6 @@
 //the useed types in the contract
-type music_supply = { current_stock : nat ; music_address : address ; music_price : tez ; publication_title : string }
+
+type music_supply = { current_stock : nat ; not_sale : bool ; music_address : address ; music_price : tez ; music_title : string }
 type music_storage = (nat, music_supply) map
 type return = operation list * music_storage
 type music_id = nat
@@ -30,6 +31,11 @@ let main (music_kind_index, music_storage : nat * music_storage) : return =
     match Map.find_opt (music_kind_index) music_storage with
     | Some k -> k
     | None -> (failwith "The NFT music you want isn't here :(" : music_supply)
+  in
+
+  // Check if the music is on sale  
+  let () = if music_kind.not_sale = true then
+    failwith "Sorry, This music is not on sale!"
   in
 
   //give the price
