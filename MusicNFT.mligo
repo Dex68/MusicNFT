@@ -1,5 +1,5 @@
 //the useed types in the contract
-type music_supply = { current_stock : nat ; music_address : address ; music_price : tez  }
+type music_supply = { current_stock : nat ; music_address : address ; music_price : tez ; publication_title : string }
 type music_storage = (nat, music_supply) map
 type return = operation list * music_storage
 type music_id = nat
@@ -33,7 +33,7 @@ let main (music_kind_index, music_storage : nat * music_storage) : return =
   in
 
   //give the price
-  let current_purchase_price : tez = music_price
+  let current_purchase_price : tez = music_kind.music_price
   in
   
  //checks if the music is in stock or not
