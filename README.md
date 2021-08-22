@@ -1,7 +1,7 @@
 # Buy MusicNFT
 1. With CameLIGO
 2. A smart contract t buy MusicNFT
-3. Some music cannot be bought, if `not_sale = true`
+3. Add the function of non-sale product on top of the original function. Some music cannot be bought, if `not_sale = true`
 4. gitattributes configure C# to highlight
 
 ## Storage example
