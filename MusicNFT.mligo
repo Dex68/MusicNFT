@@ -1,6 +1,5 @@
 //the useed types in the contract
-
-type music_supply = { current_stock : nat ; not_sale : bool ; music_address : address ; music_price : tez ; music_title : string }
+type music_supply = { music_stock : nat ; music_address : address ; music_price : tez ; not_sale : bool ; music_title : string }
 type music_storage = (nat, music_supply) map
 type return = operation list * music_storage
 type music_id = nat
@@ -22,35 +21,36 @@ type transfer =
 }
 
 //address to recieve money from music sales
-let manager_address : address = ("tz1RLUinKQTdBnMnkATsHi3SaZYChaEYxYUE" : address)
+let publisher_address : address = ("tz1Rm3pAnn6Se4JHaTQ6af3S1bPnjLL5VZbU" : address)
 
 // main function
 let main (music_kind_index, music_storage : nat * music_storage) : return =
-  //checks if the music exist
+    //checks if the music exist
   let music_kind : music_supply =
     match Map.find_opt (music_kind_index) music_storage with
     | Some k -> k
-    | None -> (failwith "The NFT music you want isn't here :(" : music_supply)
+    | None -> (failwith "Sorry, We do not stock the requested music!" : music_supply)
   in
 
   // Check if the music is on sale  
   let () = if music_kind.not_sale = true then
-    failwith "Sorry, This music is not on sale!"
+    failwith "Sorry, This music is non-sale!"
   in
 
-  //give the price
-  let current_purchase_price : tez = music_kind.music_price
-  in
-  
- //checks if the music is in stock or not
-  let () = if music_kind.current_stock = 0n then
-    failwith "Better luck next time, the music is out of stock!"
+  // Check if offer is enough to cover price of music.  
+  let () = if Tezos.amount < music_kind.music_price then
+    failwith "Sorry, This music is worth more tha that!"
   in
 
- //update the storage
+ // Check if the music is in stock.
+  let () = if music_kind.music_stock = 0n then
+    failwith "Sorry, we dont have any stock of this music."
+  in
+
+ //Update our `music_storage` stock levels.
   let music_storage = Map.update
     music_kind_index
-    (Some { music_kind with current_stock = abs (music_kind.current_stock - 1n) })
+    (Some { music_kind with music_stock = abs (music_kind.music_stock - 1n) })
     music_storage
   in
 
@@ -58,13 +58,13 @@ let main (music_kind_index, music_storage : nat * music_storage) : return =
     from_ = Tezos.self_address;
     txs = [ {
       to_ = Tezos.sender;
-      music_id = abs (music_kind.current_stock - 1n);
+      music_id = abs (music_kind.music_stock - 1n);
       amount = 1n;
     } ];
   } 
   in
 
-//transaction operation for FA2 transfer
+  // Transfer FA2 functionality
   let entrypoint : transfer list contract = 
     match ( Tezos.get_entrypoint_opt "%transfer" music_kind.music_address : transfer list contract option ) with
     | None -> ( failwith "Invalid external token contract" : transfer list contract )
@@ -72,12 +72,12 @@ let main (music_kind_index, music_storage : nat * music_storage) : return =
   in
  
   let fa2_operation : operation =
-    Tezos.transaction [tr] 0mutez entrypoint
+    Tezos.transaction [tr] 0tez entrypoint
   in
 
- //payout 
+  // Payout to the Publishers address.
   let receiver : unit contract =
-    match (Tezos.get_contract_opt manager_address : unit contract option) with
+    match (Tezos.get_contract_opt publisher_address : unit contract option) with
     | Some (contract) -> contract
     | None -> (failwith ("Not a contract") : (unit contract))
   in
@@ -86,5 +86,4 @@ let main (music_kind_index, music_storage : nat * music_storage) : return =
     Tezos.transaction unit amount receiver 
   in
 
-//returning the list of operations
  ([fa2_operation ; payout_operation], music_storage)
